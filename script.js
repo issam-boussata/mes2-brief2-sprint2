@@ -11,7 +11,17 @@ const produitsInitiaux = [
   { id: 6, nom: "Riz", prix: 14, statut: "À acheter" },
 ];
 let produits = produitsInitiaux.map((produit) => ({ ...produit }));
+
+function setProduits_local(produits){
+  localStorage.setItem("produits" , JSON.stringify(produits))
+}
+
+function getProduits(){
+  const produits =localStorage.getItem("produits") ;
+  return JSON.parse(produits) ;
+}
 let prochainId = 1;
+let id_produit_modifier = null ;
 
 const formulaire = document.getElementById("formulaire-produit");
 const champNom = document.getElementById("nom");
@@ -21,6 +31,10 @@ const filtreStatut = document.getElementById("filtre-statut");
 const triPrix = document.getElementById("tri-prix");
 const listeProduits = document.getElementById("liste-produits");
 const message = document.getElementById("message");
+const button = document.getElementById("button_entregestrer") ;
+
+const erreur_nom = document.getElementById("erreur-nom")
+const erreur_prix = document.getElementById("erreur-prix")
 
 function afficherProduits(liste) {
   listeProduits.replaceChildren();
@@ -123,11 +137,47 @@ function modifierStatut(id) {
   // TODO : changer uniquement le statut du bon produit dans les deux sens.
   // Le nom, le prix et l'id ne changent pas.
   // Mettre à jour la sauvegarde et l'affichage selon les critères actifs.
+  let produits = getProduits() ;
+  let produit_modifier = produits.filter(p => p.id === id) ;
+
+  champNom.value =  produit_modifier.nom ;
+  champPrix.value =  produit_modifier.prix ;
+  button.textContent = "modifier le produit" ;
+  button.setAttribute("type" , "button") ;
+  id_produit_modifier = produit_modifier.id ;
+
 }
+
+ function valide_champs(){
+  
+  if(!champNom.value){ erreur_nom.textContent = "entrer le nom de produit"} ;
+  if(!champPrix.value) erreur_prix.textContent = "entrer le prix de produit" ;
+
+  return true ;
+ }
+button.addEventListener("click" , ()=>{
+  if(!valide_champs) return ;
+  if(!id_produit_modifier) return ;
+  let produits = getProduits() ;
+  const index_produit_modifier = produits.findIndex(p => p.id === id_produit_modifier) ;
+
+  produits[index_produit_modifier].nom = champNom.value ;
+  produits[index_produit_modifier].prix = champPrix.value ;
+  
+  setProduits_local(produits) ;
+  afficherProduits(getProduits()) ;
+  
+})
 
 function supprimerProduit(id) {
   // TODO : demander confirmation et retirer uniquement le bon produit.
   // Mettre à jour la sauvegarde et l'affichage si la suppression est confirmée.
+
+  produits = produits.filter(p => p.id !==  id) ;
+  setProduits_local(produits)
+
+  afficherProduits(getProduits()) ;
+
 }
 
 function appliquerCriteres() {
@@ -136,12 +186,34 @@ function appliquerCriteres() {
   // Modes : initial, croissant et decroissant.
   // Retourner les résultats sans modifier le tableau complet produits.
   // Le retour ci-dessous affiche provisoirement toute la liste.
-  return produits;
+
+  let produits = getProduits() ;
+
+
+  produits = produits.filter(p => (p.nom.includes(champRecherche.value.trim())) && (p.statut.trim() === filtreStatut.value.trim() || filtreStatut.value.trim() === "tous" ))
+  
+  if(triPrix.value.trim() === "initial") return produits;
+  if(triPrix.value.trim() === "decroissant"){
+    produits = produits.sort( (a , b) => a.prix - b.prix)
+    return produits;
+  }
+  if(triPrix.value.trim() === "croissant"){
+    produits = produits.sort( (a , b) => b.prix - a.prix)
+    
+    return produits;
+  }
+
+
 }
 
 function reinitialiserCriteres() {
   // TODO : vider la recherche, sélectionner tous les produits et l'ordre initial.
   // Actualiser l'affichage, sans modifier les produits ni leur sauvegarde.
+  champRecherche.value = "" ;
+  filtreStatut.value = "tous" ;
+  triPrix.value = "initial" ;
+  afficherProduits(getProduits())
+
 }
 
 function sauvegarderProduits() {
